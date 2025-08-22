@@ -1,0 +1,69 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/Scripts/python.exe",
+        "python.terminal.activateEnvironment": true,
+        "python.formatting.provider": "none",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": false,
+        "python.linting.flake8Enabled": true,
+        "python.analysis.autoImportCompletions": true,
+        "python.analysis.extraPaths": ["./backend"],
+        
+        // Terminal defaults
+        "terminal.integrated.defaultProfile.windows": "Git Bash",
+        "terminal.integrated.cwd": "./backend",
+        "terminal.integrated.profiles": {
+            "Git Bash": {
+                "path": "C:\\Program Files\\Git\\bin\\bash.exe"
+            }
+        },
+        "terminal.integrated.env.windows": {
+            "VIRTUAL_ENV": "${workspaceFolder}/backend/venv",
+            "PATH": "${workspaceFolder}/backend/venv/Scripts;${env:PATH}"
+        },
+
+        // Python formatting and linting
+        "[python]": {
+            "editor.defaultFormatter": "ms-python.black-formatter",
+            "editor.formatOnSave": true,
+            "editor.codeActionsOnSave": {
+                "source.organizeImports": "explicit"
+            }
+        },
+
+        // File excludes
+        "files.exclude": {
+            "**/__pycache__": true,
+            "**/*.pyc": true,
+            "**/node_modules": true,
+            "**/venv": true,
+            "**/.env": false,
+            "**/.pytest_cache": true,
+            "**/datasets": false,
+            "**/models": false
+        },
+
+        // File associations
+        "files.associations": {
+            "*.env": "dotenv"
+        }
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-python.python",
+            "ms-python.flake8",
+            "ms-python.black-formatter",
+            "bradlc.vscode-tailwindcss",
+            "esbenp.prettier-vscode",
+            "ms-vscode.vscode-json",
+            "redhat.vscode-yaml",
+            "ms-azuretools.vscode-docker",
+            "ms-python.isort"
+        ]
+    }
+}

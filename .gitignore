@@ -1,0 +1,85 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.pyc
+.pytest_cache/
+
+# FastAPI & ML
+.env
+*.db
+datasets/
+models/
+*.pkl
+*.joblib
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# ML & Data files
+*.csv
+*.json
+*.parquet
+*.h5
+*.hdf5
+
+# Node.js (for future frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn/
+build/
+dist/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+.directory
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+celerybeat-schedule
+
+# Database
+*.sqlite3
+postgres_data/
+redis_data/
+
+# ML Model artifacts
+wandb/
+mlruns/
+.mlflow/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Sample datasets (uncomment if you want to include them)
+# sample_datasets/
+
+# Environment files
+.env.local
+.env.development
+.env.production

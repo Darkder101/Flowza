@@ -1,0 +1,73 @@
+
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: flowza_postgres
+    environment:
+      POSTGRES_DB: flowza_db
+      POSTGRES_USER: flowza
+      POSTGRES_PASSWORD: password123
+    ports:
+      - "5433:5432"
+    volumes:
+      - flowza_postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - flowza_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: mlflow_redis
+    ports:
+      - "6380:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - flowza_network
+
+  # ML Base Container for running nodes
+  ml-runner:
+    build:
+      context: .
+      dockerfile: docker/ml-base.dockerfile
+    container_name: flowza_ml_runner
+    volumes:
+      - ./backend/app/services/ml_nodes:/app/ml_nodes
+      - ml_datasets:/app/datasets
+      - ml_models:/app/models
+    networks:
+      - flowza_network
+    command: tail -f /dev/null  # Keep container running for exec commands
+
+  # Celery Worker
+  celery-worker:
+    build:
+      context: .
+      dockerfile: docker/ml-base.dockerfile
+    container_name: flowza_celery_worker
+    command: celery -A app.main.celery worker --loglevel=info
+    volumes:
+      - ./backend:/app
+      - ml_datasets:/app/datasets
+      - ml_models:/app/models
+    environment:
+      - DATABASE_URL=postgresql://flowza:password123@postgres:5432/flowza_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - flowza_network
+
+
+volumes:
+  flowza_postgres_data:
+  redis_data:
+  ml_datasets:
+  ml_models:
+
+networks:
+  flowza_network:
+    driver: bridge
