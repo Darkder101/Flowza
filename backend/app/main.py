@@ -6,11 +6,10 @@ from app.routers import workflows, tasks
 import os
 from dotenv import load_dotenv
 from celery import Celery
+import traceback
+from contextlib import asynccontextmanager
 
 load_dotenv()
-
-# Create tables
-Base.metadata.create_all(bind=engine)
 
 # Initialize Celery
 celery = Celery(
@@ -20,10 +19,26 @@ celery = Celery(
     include=["app.services.task_executor"]
 )
 
+# Lifespan event handler (replaces on_event)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- Startup ---
+    Base.metadata.create_all(bind=engine)
+    print("📦 Database tables checked/created")
+
+    yield  # app runs here
+
+    # --- Shutdown ---
+    print("🛑 Shutting down Flowza API")
+
+
 app = FastAPI(
     title="Flowza - Visual ML Workflow Platform",
     description="Drag-and-drop interface for building and executing ML pipelines",  # noqa : E501
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan
 )
 
 # CORS middleware for frontend
@@ -78,43 +93,51 @@ async def upload_dataset(file: UploadFile = File(...)):
     from app.models.dataset import Dataset
     from app.database.connection import SessionLocal
 
-    # Save uploaded file
-    file_path = f"datasets/{file.filename}"
-    with open(file_path, "wb") as buffer:
+    try:
+        # Save uploaded file
+        file_path = f"datasets/{file.filename}"
         content = await file.read()
-        buffer.write(content)
+        with open(file_path, "wb") as f:
+            f.write(content)
 
-    # Analyze dataset
-    df = pd.read_csv(file_path)
+        # Analyze dataset
+        df = pd.read_csv(file_path)
 
-    # Store dataset metadata in database
-    db = SessionLocal()
-    dataset = Dataset(
-        name=file.filename,
-        file_path=file_path,
-        format="csv",
-        size_mb=os.path.getsize(file_path) / 1024 / 1024,
-        num_rows=len(df),
-        num_columns=len(df.columns),
-        columns_info={
-            "columns": list(df.columns),
-            "dtypes": df.dtypes.astype(str).to_dict(),
-            "null_counts": df.isnull().sum().to_dict()
-        },
-        source="uploaded"
-    )
-    db.add(dataset)
-    db.commit()
-    db.refresh(dataset)
-    db.close()
+        # Store dataset metadata in database
+        db = SessionLocal()
+        dataset = Dataset(
+            name=file.filename,
+            file_path=file_path,
+            format="csv",
+            size_mb=os.path.getsize(file_path) / 1024 / 1024,
+            num_rows=len(df),
+            num_columns=len(df.columns),
+            columns_info={
+                "columns": list(df.columns),
+                "dtypes": df.dtypes.astype(str).to_dict(),
+                "null_counts": df.isnull().sum().to_dict()
+            },
+            source="uploaded"
+        )
+        db.add(dataset)
+        db.commit()
+        db.refresh(dataset)
+        db.close()
 
-    return {
-        "message": "Dataset uploaded successfully",
-        "dataset_id": dataset.id,
-        "name": dataset.name,
-        "rows": dataset.num_rows,
-        "columns": dataset.num_columns
-    }
+        return {
+            "message": "Dataset uploaded successfully",
+            "dataset_id": dataset.id,
+            "name": dataset.name,
+            "rows": dataset.num_rows,
+            "columns": dataset.num_columns
+        }
+
+    except Exception as e:
+        # Log the error to uvicorn console
+        print("❌ Upload failed:", str(e))
+        traceback.print_exc()
+        return {"error": str(e)}
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -22,8 +22,8 @@ async def create_workflow(workflow: WorkflowCreate, db: Session = Depends(get_db
     db_workflow = Workflow(
         name=workflow.name,
         description=workflow.description,
-        nodes=workflow.nodes,
-        connections=workflow.connections
+        nodes=[node.model_dump() for node in workflow.nodes],
+        connections=[conn.model_dump() for conn in workflow.connections]
     )
     db.add(db_workflow)
     db.commit()
