@@ -74,26 +74,53 @@ Create `Flowza.code-workspace` in the root directory:
         }
     ],
     "settings": {
-        "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/bin/python",
+        "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/Scripts/python.exe",
         "python.terminal.activateEnvironment": true,
-        "python.formatting.provider": "black",
+        "python.formatting.provider": "none",
         "python.linting.enabled": true,
         "python.linting.pylintEnabled": false,
         "python.linting.flake8Enabled": true,
+        "python.analysis.autoImportCompletions": true,
+        "python.analysis.extraPaths": ["./backend"],
+        
+        // Terminal defaults
+        "terminal.integrated.defaultProfile.windows": "Git Bash",
+        "terminal.integrated.cwd": "./backend",
+        "terminal.integrated.profiles": {
+            "Git Bash": {
+                "path": "C:\\Program Files\\Git\\bin\\bash.exe"
+            }
+        },
+        "terminal.integrated.env.windows": {
+            "VIRTUAL_ENV": "${workspaceFolder}/backend/venv",
+            "PATH": "${workspaceFolder}/backend/venv/Scripts;${env:PATH}"
+        },
+
+        // Python formatting and linting
+        "[python]": {
+            "editor.defaultFormatter": "ms-python.black-formatter",
+            "editor.formatOnSave": true,
+            "editor.codeActionsOnSave": {
+                "source.organizeImports": "explicit"
+            }
+        },
+
+        // File excludes
         "files.exclude": {
             "**/__pycache__": true,
             "**/*.pyc": true,
             "**/node_modules": true,
             "**/venv": true,
             "**/.env": false,
+            "**/.pytest_cache": true,
             "**/datasets": false,
             "**/models": false
         },
-        "python.testing.pytestEnabled": true,
-        "python.testing.unittestEnabled": false,
-        "python.testing.pytestArgs": [
-            "backend/tests"
-        ]
+
+        // File associations
+        "files.associations": {
+            "*.env": "dotenv"
+        }
     },
     "extensions": {
         "recommendations": [
@@ -105,8 +132,7 @@ Create `Flowza.code-workspace` in the root directory:
             "ms-vscode.vscode-json",
             "redhat.vscode-yaml",
             "ms-azuretools.vscode-docker",
-            "ms-toolsai.jupyter",
-            "mechatroner.rainbow-csv"
+            "ms-python.isort"
         ]
     }
 }
@@ -238,7 +264,7 @@ AI_WORKFLOW_GENERATION=False
 ### 4.1 Create docker-compose.yml
 In the root directory, create `docker-compose.yml`:
 ```yaml
-version: '3.8'
+
 
 services:
   postgres:
@@ -251,10 +277,10 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - flowza_postgres_data:/var/lib/postgresql/data
       - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - mlflow_network
+      - flowza_network
 
   redis:
     image: redis:7-alpine
@@ -284,8 +310,8 @@ services:
   # Celery Worker
   celery-worker:
     build:
-      context: ./backend
-      dockerfile: ../docker/ml-base.dockerfile
+      context: .
+      dockerfile: docker/ml-base.dockerfile
     container_name: flowza_celery_worker
     command: celery -A app.main.celery worker --loglevel=info
     volumes:
@@ -301,8 +327,9 @@ services:
     networks:
       - flowza_network
 
+
 volumes:
-  postgres_data:
+  flowza_postgres_data:
   redis_data:
   ml_datasets:
   ml_models:
@@ -392,95 +419,101 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database.connection import Base
 
+
 class Workflow(Base):
     __tablename__ = "workflows"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text)
-    
+
     # Workflow definition (nodes and connections)
     nodes = Column(JSON)  # List of workflow nodes
     connections = Column(JSON)  # Node connections/edges
-    
+
     # Execution info
-    status = Column(String(50), default="draft")  # draft, running, completed, failed
+    status = Column(String(50), default="draft")  # draft, running, completed, failed  # noqa : E501
     results = Column(JSON)  # Final results
     execution_time = Column(Integer)  # seconds
-    
+
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     is_template = Column(Boolean, default=False)
-    
+
     # Relationships
-    tasks = relationship("Task", back_populates="workflow", cascade="all, delete-orphan")
+    tasks = relationship("Task", back_populates="workflow", cascade="all, delete-orphan")  # noqa : E501
+
 ```
 
 Create `backend/app/models/task.py`:
 ```python
-from sqlalchemy import Column, Integer, String, JSON, DateTime, Text, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, JSON, DateTime, Text, ForeignKey, Float  # noqa : E501
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database.connection import Base
 
+
 class Task(Base):
     __tablename__ = "tasks"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     workflow_id = Column(Integer, ForeignKey("workflows.id"), nullable=False)
-    
+
     # Task definition
     node_id = Column(String(100), nullable=False)  # Unique within workflow
-    task_type = Column(String(100), nullable=False)  # csv_loader, preprocess, train_logreg, etc.
+    task_type = Column(String(100), nullable=False)  # csv_loader, preprocess, train_logreg, etc.  # noqa : E501
     task_name = Column(String(255), nullable=False)
-    
+
     # Task configuration
     parameters = Column(JSON)  # Input parameters for the task
     input_data = Column(JSON)  # References to input datasets/models
     output_data = Column(JSON)  # References to output datasets/models
-    
+
     # Execution info
-    status = Column(String(50), default="pending")  # pending, running, completed, failed
+    status = Column(String(50), default="pending")  # pending, running, completed, failed  # noqa : E501
     result = Column(JSON)  # Task execution results
     error_message = Column(Text)
     execution_time = Column(Float)  # seconds
-    
+
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
     # Relationships
     workflow = relationship("Workflow", back_populates="tasks")
+
 ```
 
 Create `backend/app/models/dataset.py`:
 ```python
-from sqlalchemy import Column, Integer, String, JSON, DateTime, Text, Float, Boolean
+from sqlalchemy import Column, Integer, String, JSON, DateTime, Text, Float, Boolean  # noqa : E501
 from sqlalchemy.sql import func
 from app.database.connection import Base
 
+
 class Dataset(Base):
     __tablename__ = "datasets"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     file_path = Column(String(500), nullable=False)
-    
+
     # Dataset info
     format = Column(String(50))  # csv, json, parquet, etc.
     size_mb = Column(Float)
     num_rows = Column(Integer)
     num_columns = Column(Integer)
     columns_info = Column(JSON)  # Column names, types, stats
-    
+
     # Metadata
     description = Column(Text)
     source = Column(String(255))  # uploaded, generated, etc.
     is_temporary = Column(Boolean, default=False)  # For intermediate datasets
-    
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
 ```
 
 ## Step 6: Basic FastAPI Application
@@ -496,11 +529,10 @@ from app.routers import workflows, tasks
 import os
 from dotenv import load_dotenv
 from celery import Celery
+import traceback
+from contextlib import asynccontextmanager
 
 load_dotenv()
-
-# Create tables
-Base.metadata.create_all(bind=engine)
 
 # Initialize Celery
 celery = Celery(
@@ -510,10 +542,26 @@ celery = Celery(
     include=["app.services.task_executor"]
 )
 
+# Lifespan event handler (replaces on_event)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- Startup ---
+    Base.metadata.create_all(bind=engine)
+    print("📦 Database tables checked/created")
+
+    yield  # app runs here
+
+    # --- Shutdown ---
+    print("🛑 Shutting down Flowza API")
+
+
 app = FastAPI(
     title="Flowza - Visual ML Workflow Platform",
-    description="Drag-and-drop interface for building and executing ML pipelines",
-    version="0.1.0"
+    description="Drag-and-drop interface for building and executing ML pipelines",  # noqa : E501
+    version="0.1.0",
+    lifespan=lifespan
 )
 
 # CORS middleware for frontend
@@ -532,8 +580,9 @@ app.mount("/datasets", StaticFiles(directory="datasets"), name="datasets")
 app.mount("/models", StaticFiles(directory="models"), name="models")
 
 # Include routers
-app.include_router(workflows.router, prefix="/api/workflows", tags=["workflows"])
+app.include_router(workflows.router, prefix="/api/workflows", tags=["workflows"])  # noqa : E501
 app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
+
 
 @app.get("/")
 async def root():
@@ -549,6 +598,7 @@ async def root():
         }
     }
 
+
 @app.get("/health")
 async def health_check():
     return {
@@ -558,50 +608,59 @@ async def health_check():
         "ml_nodes": "ready"
     }
 
+
 @app.post("/api/upload")
 async def upload_dataset(file: UploadFile = File(...)):
     """Upload a CSV dataset for use in workflows"""
     import pandas as pd
     from app.models.dataset import Dataset
     from app.database.connection import SessionLocal
-    
-    # Save uploaded file
-    file_path = f"datasets/{file.filename}"
-    with open(file_path, "wb") as buffer:
+
+    try:
+        # Save uploaded file
+        file_path = f"datasets/{file.filename}"
         content = await file.read()
-        buffer.write(content)
-    
-    # Analyze dataset
-    df = pd.read_csv(file_path)
-    
-    # Store dataset metadata in database
-    db = SessionLocal()
-    dataset = Dataset(
-        name=file.filename,
-        file_path=file_path,
-        format="csv",
-        size_mb=os.path.getsize(file_path) / 1024 / 1024,
-        num_rows=len(df),
-        num_columns=len(df.columns),
-        columns_info={
-            "columns": list(df.columns),
-            "dtypes": df.dtypes.astype(str).to_dict(),
-            "null_counts": df.isnull().sum().to_dict()
-        },
-        source="uploaded"
-    )
-    db.add(dataset)
-    db.commit()
-    db.refresh(dataset)
-    db.close()
-    
-    return {
-        "message": "Dataset uploaded successfully",
-        "dataset_id": dataset.id,
-        "name": dataset.name,
-        "rows": dataset.num_rows,
-        "columns": dataset.num_columns
-    }
+        with open(file_path, "wb") as f:
+            f.write(content)
+
+        # Analyze dataset
+        df = pd.read_csv(file_path)
+
+        # Store dataset metadata in database
+        db = SessionLocal()
+        dataset = Dataset(
+            name=file.filename,
+            file_path=file_path,
+            format="csv",
+            size_mb=os.path.getsize(file_path) / 1024 / 1024,
+            num_rows=len(df),
+            num_columns=len(df.columns),
+            columns_info={
+                "columns": list(df.columns),
+                "dtypes": df.dtypes.astype(str).to_dict(),
+                "null_counts": df.isnull().sum().to_dict()
+            },
+            source="uploaded"
+        )
+        db.add(dataset)
+        db.commit()
+        db.refresh(dataset)
+        db.close()
+
+        return {
+            "message": "Dataset uploaded successfully",
+            "dataset_id": dataset.id,
+            "name": dataset.name,
+            "rows": dataset.num_rows,
+            "columns": dataset.num_columns
+        }
+
+    except Exception as e:
+        # Log the error to uvicorn console
+        print("❌ Upload failed:", str(e))
+        traceback.print_exc()
+        return {"error": str(e)}
+
 
 if __name__ == "__main__":
     import uvicorn
@@ -611,6 +670,7 @@ if __name__ == "__main__":
         port=int(os.getenv("API_PORT", 8000)),
         reload=os.getenv("DEBUG", "True").lower() == "true"
     )
+
 ```
 
 ### 6.2 Create basic routers
@@ -622,9 +682,10 @@ from app.database.connection import get_db
 from app.models.workflow import Workflow
 from app.schemas.workflow_schemas import WorkflowCreate, WorkflowResponse
 from typing import List
-import json
+import json  # noqa : 
 
 router = APIRouter()
+
 
 @router.get("/", response_model=List[WorkflowResponse])
 async def list_workflows(db: Session = Depends(get_db)):
@@ -632,19 +693,21 @@ async def list_workflows(db: Session = Depends(get_db)):
     workflows = db.query(Workflow).all()
     return workflows
 
+
 @router.post("/", response_model=WorkflowResponse)
-async def create_workflow(workflow: WorkflowCreate, db: Session = Depends(get_db)):
+async def create_workflow(workflow: WorkflowCreate, db: Session = Depends(get_db)):  # noqa : E501
     """Create a new workflow"""
     db_workflow = Workflow(
         name=workflow.name,
         description=workflow.description,
-        nodes=workflow.nodes,
-        connections=workflow.connections
+        nodes=[node.model_dump() for node in workflow.nodes],
+        connections=[conn.model_dump() for conn in workflow.connections]
     )
     db.add(db_workflow)
     db.commit()
     db.refresh(db_workflow)
     return db_workflow
+
 
 @router.get("/{workflow_id}", response_model=WorkflowResponse)
 async def get_workflow(workflow_id: int, db: Session = Depends(get_db)):
@@ -654,21 +717,23 @@ async def get_workflow(workflow_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Workflow not found")
     return workflow
 
+
 @router.post("/{workflow_id}/execute")
 async def execute_workflow(workflow_id: int, db: Session = Depends(get_db)):
     """Execute a workflow"""
     workflow = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    
+
     # Update workflow status
     workflow.status = "running"
     db.commit()
-    
+
     # TODO: Trigger Celery task for workflow execution
     # This will be implemented in Step 2
-    
-    return {"message": "Workflow execution started", "workflow_id": workflow_id}
+
+    return {"message": "Workflow execution started", "workflow_id": workflow_id}  # noqa : E501
+
 
 @router.get("/templates/")
 async def get_workflow_templates():
@@ -677,7 +742,7 @@ async def get_workflow_templates():
         {
             "id": "basic_classification",
             "name": "Basic Classification Pipeline",
-            "description": "CSV → Clean → Split → Train Logistic Regression → Evaluate",
+            "description": "CSV → Clean → Split → Train Logistic Regression → Evaluate",  # noqa : E501
             "nodes": [
                 {
                     "id": "load_csv",
@@ -719,6 +784,7 @@ async def get_workflow_templates():
         }
     ]
     return templates
+
 ```
 
 Create `backend/app/routers/tasks.py`:
@@ -727,9 +793,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
 from app.models.task import Task
-from typing import List
+from typing import List  # noqa : 
 
 router = APIRouter()
+
 
 @router.get("/available")
 async def get_available_ml_nodes():
@@ -815,11 +882,12 @@ async def get_available_ml_nodes():
                 "inputs": ["model", "test_dataset"],
                 "outputs": ["metrics"],
                 "parameters": {
-                    "metrics": {"type": "array", "default": ["accuracy", "f1_score", "precision", "recall"]}
+                    "metrics": {"type": "array", "default": ["accuracy", "f1_score", "precision", "recall"]}  # noqa : 
                 }
             }
         ]
     }
+
 
 @router.get("/{task_id}")
 async def get_task_status(task_id: int, db: Session = Depends(get_db)):
@@ -834,6 +902,7 @@ async def get_task_status(task_id: int, db: Session = Depends(get_db)):
         "error_message": task.error_message,
         "execution_time": task.execution_time
     }
+
 ```
 
 ### 6.3 Create Pydantic schemas
