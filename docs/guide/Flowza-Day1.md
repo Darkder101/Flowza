@@ -1498,47 +1498,6 @@ chmod +x scripts/start_dev.sh
 chmod +x scripts/start_celery.sh
 ```
 
-## Step 12: Create README.md
-
-Create comprehensive `README.md`:
-```markdown
-# Flowza
-
-Visual ML Workflow Platform - Drag-and-drop interface for building and executing machine learning pipelines.
-
-## 🎯 Overview
-
-Flowza allows you to create machine learning workflows visually by dragging and dropping nodes, connecting them to form pipelines, and executing them with real-time feedback.
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Python 3.8+
-- Node.js 16+ 
-- Docker Desktop
-- Git
-
-### Setup
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd Flowza
-   ```
-
-2. **Start development environment**
-   ```bash
-   ./scripts/start_dev.sh
-   ```
-
-3. **In another terminal, start Celery worker**
-   ```bash
-   ./scripts/start_celery.sh
-   ```
-
-4. **Open the API documentation**
-   - API: http://localhost:8000
-   - Documentation: http://localhost:8000/docs
-
 ## 🏗️ Architecture
 
 - **Backend**: FastAPI + SQLAlchemy + PostgreSQL
@@ -1562,25 +1521,6 @@ Flowza allows you to create machine learning workflows visually by dragging and 
 ### Evaluation (Coming Week 3-4)
 - **Model Evaluation**: Calculate accuracy, F1-score, precision, recall
 
-## 🧪 Testing
-
-Upload a sample dataset:
-```bash
-curl -X POST http://localhost:8000/api/upload \
-  -F "file=@sample_datasets/iris.csv"
-```
-
-Create a workflow:
-```bash
-curl -X POST http://localhost:8000/api/workflows/ \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test Pipeline",
-    "description": "Sample ML pipeline",
-    "nodes": [...],
-    "connections": [...]
-  }'
-```
 
 ## 📅 Development Roadmap
 
@@ -1594,18 +1534,57 @@ curl -X POST http://localhost:8000/api/workflows/ \
 
 ### Project Structure
 ```
-Flowza/
-├── backend/          # FastAPI backend
-├── frontend/         # React frontend (Week 5+)
-├── docker/           # Docker configurations
-├── scripts/          # Development scripts
-└── docs/            # Documentation
-```
-
-### Running Tests
-```bash
-cd backend
-pytest
+MLFlowBuilder/
+├── .env
+├── .gitignore
+├── docker-compose.yml
+├── README.md
+├── requirements.txt
+├── backend/
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── database.py
+|   |   |   └── connection.py 
+│   │   ├── models/
+|   |   |   ├── dataset.py 
+│   │   │   ├── workflow.py
+│   │   │   └── task.py
+│   │   ├── routers/
+│   │   │   ├── workflows.py
+│   │   │   └── tasks.py
+│   │   ├── services/
+|   |   |   ├── task_executor.py 
+│   │   │   ├── workflow_service.py
+│   │   │   └── ml_nodes/
+│   │   │       ├── base.py
+│   │   │       ├── csv_loader.py
+│   │   │       ├── preprocess.py
+│   │   │       ├── train_logreg.py
+│   │   │       ├── train_xgboost.py
+│   │   │       └── evaluate.py
+│   │   ├── schemas/
+│   │   │   ├── workflow_schemas.py
+│   │   │   └── task_schemas.py
+│   │   └── ai/
+│   │       └── workflow_generator.py
+|   ├── datasets/
+|   |   ├── iris.csv
+|   |   ├── sample_data.csv
+|   |   └── housing.csv
+|   ├── models/
+|   ├── scripts/
+|   |   ├── start_celery.sh
+|   |   └── start_dev.sh
+│   ├── requirements.txt
+│   ├── init.sql
+|   └── .env
+├── frontend/  
+├── docs/
+│   ├── Ai_Helper/
+|   ├── dev_journal/
+|   ├── guide/
+└── docker/
+    └── ml-base.dockerfile
 ```
 
 ### Database Migrations
@@ -1615,55 +1594,6 @@ alembic revision --autogenerate -m "Description"
 alembic upgrade head
 ```
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes  
-4. Add tests
-5. Submit a pull request
-
-## 📄 License
-
-MIT License - see LICENSE file for details.
-```
-
-## Step 13: Commit Your Progress
-
-```bash
-# Add all files
-git add .
-
-# Commit the initial setup
-git commit -m "Day 1: Complete Flowza setup
-
-- FastAPI backend with PostgreSQL and Redis
-- Basic ML nodes (CSV loader, preprocessing)
-- Celery task queue for async execution
-- Docker containerization
-- API endpoints for workflows and tasks
-- Sample datasets and development scripts
-- Comprehensive documentation
-
-Ready for Week 2: Workflow execution engine"
-
-# Push to GitHub
-git push origin main
-```
-
-## 🎉 Congratulations!
-
-You've successfully set up the complete Flowza infrastructure! Here's what you've accomplished:
-
-✅ **Complete project structure** with proper separation of concerns
-✅ **FastAPI backend** with database models and API endpoints  
-✅ **Docker infrastructure** with PostgreSQL and Redis
-✅ **Basic ML nodes** (CSV loader and preprocessing)
-✅ **Celery task queue** for async ML execution
-✅ **File upload system** for datasets
-✅ **Development scripts** for easy startup
-✅ **Comprehensive documentation** and testing endpoints
-
 ## 🔜 Next Steps (Week 2)
 
 Tomorrow you'll implement:
@@ -1672,29 +1602,3 @@ Tomorrow you'll implement:
 - [ ] Error handling and recovery
 - [ ] Progress tracking for long-running workflows
 - [ ] Basic train/test split functionality
-
-## 🔧 Troubleshooting
-
-### Common Issues:
-1. **Docker services not starting**: Ensure Docker Desktop is running
-2. **Port conflicts**: Check ports 8000, 5433, 6380 are available  
-3. **Python dependencies**: Make sure virtual environment is activated
-4. **Database connection**: Verify PostgreSQL container is healthy
-5. **Celery worker**: Ensure Redis is running before starting worker
-
-### Health Checks:
-```bash
-# Check API
-curl http://localhost:8000/health
-
-# Check Docker services  
-docker-compose ps
-
-# Check database
-docker exec flowza_postgres pg_isready -U flowza
-
-# Check Redis
-docker exec flowza_redis redis-cli ping
-```
-
-Your Flowza foundation is now ready! 🚀
