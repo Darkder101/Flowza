@@ -4,14 +4,74 @@
 - **Task Queue**: Celery + Redis  
 - **ML Execution**: Docker containers
 - **Frontend**: React + React Flow (coming in Week 5-6)
+- **Storage**: PostgreSQL (metadata) + optional S3 (large datasets & models)
+- **Model Management**: Lightweight registry in PostgreSQL (model versions, metadata)
 
 ## 📅 Development Roadmap
 
 - [x] **Week 1**: Project setup, basic infrastructure
 - [ ] **Week 2**: Workflow execution engine  
-- [ ] **Week 3-4**: Core ML nodes (preprocess, train, evaluate)
-- [ ] **Week 5-6**: React frontend with visual workflow editor
-- [ ] **Week 7-8**: AI-assisted workflow generation
+- [ ] **Week 3-4**: Core ML nodes (preprocess, train, evaluate) + basic data connectors
+- [ ] **Week 5-6**: React frontend + model registry + logs
+- [ ] **Week 7-8**: AI-assisted workflow gen + model deployment
+- [ ] **Week 9-10**: Monitoring + workflow sharing + final polish
+
+### 📋 Detailed Week-by-Week Plan
+#### Week 1: Project Setup
+- [x] Setup FastAPI backend, Docker, PostgreSQL, Redis, Celery
+- [x] Define schema for workflows + tasks
+- [x] Create first tool: CSV Loader
+
+#### Week 2: Basic Execution Engine
+- [ ] Implement workflow execution service
+- [ ] Chain simple nodes: CSV → Drop Nulls → Output Dataset
+- [ ] Build APIs for workflow submission + result fetching
+
+#### Week 3: Add Preprocessing Tools
+- [ ] Normalize values, one-hot encoding, train/test split
+- [ ] Save intermediate datasets in PostgreSQL/S3 (depending on size)
+- [ ] Testing basic pipelines
+- [ ] Add Postgres + S3 data connectors
+
+#### Week 4: Add Training & Eval
+- [ ] Logistic Regression (scikit-learn)
+- [ ] XGBoost Classifier
+- [ ] Evaluation node (accuracy, F1 score, confusion matrix)
+- [ ] Store trained models + metadata in registry
+
+#### Week 5: Frontend Workflow Builder
+- [ ] React + React Flow setup
+- [ ] Add workflow canvas
+- [ ] Nodes: Data → Preprocess → Train → Evaluate
+- [ ] Connect backend API to frontend run button
+- [ ] Add execution logs per node (success/failure/error)
+
+#### Week 6: Workflow Output UI
+- [ ] Show metrics in UI (tables, charts)
+- [ ] Display trained model artifacts for download
+- [ ] Save + load workflows from DB
+- [ ] Model registry browsing in UI
+
+#### Week 7: AI Assistance + Templates
+- [ ] Integrate OpenAI API → “Generate workflow from prompt”
+- [ ] Prebuilt templates (classification, regression, data cleaning)
+- [ ] Export workflows as Python notebooks
+
+#### Week 8: Model Deployment
+- [ ] Deploy trained model as FastAPI endpoint (REST API)
+- [ ] Return predictions for sample inputs
+- [ ] Basic auth/token system for endpoints
+
+#### Week 9: Monitoring
+- [ ] Log predictions (inputs, outputs, latency) into Postgres
+- [ ] Add charts for model drift + accuracy trends
+- [ ] Alerting on accuracy drop (basic Celery task)
+
+#### Week 10: Final Polish
+- [ ] Workflow sharing between users
+- [ ] Export models as Docker container (stretch)
+- [ ] Add showcase datasets (Titanic, Iris, MNIST-lite)
+- [ ] Documentation + demo prep
 
 ## 🛠️ Development
 

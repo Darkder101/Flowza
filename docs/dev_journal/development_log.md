@@ -34,3 +34,36 @@
 
 
 ## 🤔 Questions/Decisions
+
+# MonkeyFlow - Day 2
+**Date**: 24-8-2025
+**Time**: 8 to 10 hrs
+
+## ✅ What I Built
+- workflowservices class is created at app/services/workflow_service.py
+- enhanced schemas by updating app/schemas/workflow_schemas.py
+- added result persistence by creating dataset persistence service at app/services/dataset_service.py
+- updated workflow services to use dataset persistence updated at app/services/workflow_service.py
+- Updated task router with better node definitions at app/routers/tasks.py
+- created comprehensive test script at scripts/test_workflows.py 
+- updated workflow service with progress tracking at app/services/workflow_service.py
+- added progress endpoint at app/routers/workflows.py 
+- created new directory at app/utils
+- created error handling utilites at app/utils/error_handler.py
+- Updated workflow service with error handling at app/services/workflow_service.py
+- created new directory at backend/alembic
+- For Database migration created database initalization at backend/alembic/env.py  
+- connection pooling and caching added by updating app/database/connection.py
+- added dataset size limits and validations by updating app/services/dataset_service.py
+- created cleanup uitilities at scripts/cleanup.py
+- created final validation script at scripts/validate_day2.py
+- drop_nulls Ml node is implemented at app/service/ml_nodes/drop_nulls.py
+- train_test_split node is implemented at app/service/ml_nodes/train_test_split.py 
+ 
+## 🐛 Problems & Solutions
+
+
+## 🧠 What I Learned
+
+
+## 🤔 Questions/Decisions

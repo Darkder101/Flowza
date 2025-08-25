@@ -4,6 +4,8 @@
 - **Task Queue**: Celery + Redis  
 - **ML Execution**: Docker containers
 - **Frontend**: React + React Flow (coming in Week 5-6)
+- **Storage**: PostgreSQL (metadata) + optional S3 (large datasets & models)
+- **Model Management**: Lightweight registry in PostgreSQL (model versions, metadata)
 
 ## 🛠️ MVP Roadmap (6–8 Weeks)
 ### Phase 1: Foundation + Proof of Concept (Weeks 1–2)
@@ -15,19 +17,22 @@
     - Drop null values
     - Train/Test Split
 
-### Phase 2: Add Core ML Tools (Weeks 3–4)
+### Phase 2: Add Core ML Tools + Data Connectors (Weeks 3–4)
 - Add ML nodes:
     - Preprocessing (normalize, encode categorical, feature selection)
     - Training (Logistic Regression, XGBoost)
     - Evaluation (accuracy, F1 score)
 - Workflow chaining (output → input passing via Python objects)
 - Store workflows + results in PostgreSQL
+- add basic data connectors (Postgres DB + S3)
 
 ### Phase 3: Visual Interface (Weeks 5–6)
 - React + React Flow frontend
 - Drag-and-drop workflow editor
 - Connect frontend to backend (API to run workflows)
 - Display outputs (tables, metrics, charts)
+- Save trained models + metadata in simple model registry (Postgres table)
+- Workflow execution logs per node for debugging
 
 ### Phase 4: AI + Workflow Templates (Weeks 7–8)
 - Add simple AI-assisted workflow generation:
@@ -36,14 +41,23 @@
     - CSV → Clean → Split → Train Logistic Regression → Evaluate
     - CSV → Normalize → Train XGBoost → Export model
 - Export option: Generate Python script / notebook from workflow
+- Basic model deployment option (FastAPI endpoint serving trained model)
+
+### Phase 5: Monitoring + Polish (Weeks 9–10)
+- Log model predictions (inputs, outputs, latency) into Postgres
+- Basic monitoring UI (charts for drift, accuracy over time)
+- Export models as Docker container (optional stretch)
+- Save + share workflows between users
+- Demo-ready with docs + 2–3 showcase datasets (Titanic, Iris, MNIST-lite)
 
 ## 📅 Development Roadmap
 
 - [x] **Week 1**: Project setup, basic infrastructure
 - [ ] **Week 2**: Workflow execution engine  
-- [ ] **Week 3-4**: Core ML nodes (preprocess, train, evaluate)
-- [ ] **Week 5-6**: React frontend with visual workflow editor
-- [ ] **Week 7-8**: AI-assisted workflow generation
+- [ ] **Week 3-4**: Core ML nodes (preprocess, train, evaluate) + basic data connectors
+- [ ] **Week 5-6**: React frontend + model registry + logs
+- [ ] **Week 7-8**: AI-assisted workflow gen + model deployment
+- [ ] **Week 9-10**: Monitoring + workflow sharing + final polish
 
 ### 📋 Detailed Week-by-Week Plan
 #### Week 1: Project Setup
@@ -60,35 +74,51 @@
 - [ ] Normalize values, one-hot encoding, train/test split
 - [ ] Save intermediate datasets in PostgreSQL/S3 (depending on size)
 - [ ] Testing basic pipelines
+- [ ] Add Postgres + S3 data connectors
 
 #### Week 4: Add Training & Eval
 - [ ] Logistic Regression (scikit-learn)
 - [ ] XGBoost Classifier
 - [ ] Evaluation node (accuracy, F1 score, confusion matrix)
+- [ ] Store trained models + metadata in registry
 
 #### Week 5: Frontend Workflow Builder
 - [ ] React + React Flow setup
 - [ ] Add workflow canvas
 - [ ] Nodes: Data → Preprocess → Train → Evaluate
 - [ ] Connect backend API to frontend run button
+- [ ] Add execution logs per node (success/failure/error)
 
 #### Week 6: Workflow Output UI
 - [ ] Show metrics in UI (tables, charts)
 - [ ] Display trained model artifacts for download
 - [ ] Save + load workflows from DB
+- [ ] Model registry browsing in UI
 
 #### Week 7: AI Assistance + Templates
 - [ ] Integrate OpenAI API → “Generate workflow from prompt”
 - [ ] Prebuilt templates (classification, regression, data cleaning)
-
-#### Week 8: Polish MVP
 - [ ] Export workflows as Python notebooks
-- [ ] Test with example datasets (Titanic, Iris)
-- [ ] Docs + Demo-ready
+
+#### Week 8: Model Deployment
+- [ ] Deploy trained model as FastAPI endpoint (REST API)
+- [ ] Return predictions for sample inputs
+- [ ] Basic auth/token system for endpoints
+
+#### Week 9: Monitoring
+- [ ] Log predictions (inputs, outputs, latency) into Postgres
+- [ ] Add charts for model drift + accuracy trends
+- [ ] Alerting on accuracy drop (basic Celery task)
+
+#### Week 10: Final Polish
+- [ ] Workflow sharing between users
+- [ ] Export models as Docker container (stretch)
+- [ ] Add showcase datasets (Titanic, Iris, MNIST-lite)
+- [ ] Documentation + demo prep
 
 ## Project Structure
 ```
-MLFlowBuilder/
+Flowza/
 ├── .env
 ├── .gitignore
 ├── docker-compose.yml
@@ -97,18 +127,19 @@ MLFlowBuilder/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py
-│   │   ├── database.py
-|   |   |   └── connection.py 
+│   │   ├── database/
+│   │   │   └── connection.py
 │   │   ├── models/
-|   |   |   ├── dataset.py 
+│   │   │   ├── dataset.py
 │   │   │   ├── workflow.py
 │   │   │   └── task.py
 │   │   ├── routers/
 │   │   │   ├── workflows.py
 │   │   │   └── tasks.py
 │   │   ├── services/
-|   |   |   ├── task_executor.py 
+│   │   │   ├── task_executor.py
 │   │   │   ├── workflow_service.py
+│   │   │   ├── dataset_service.py
 │   │   │   └── ml_nodes/
 │   │   │       ├── base.py
 │   │   │       ├── csv_loader.py
@@ -119,27 +150,36 @@ MLFlowBuilder/
 │   │   ├── schemas/
 │   │   │   ├── workflow_schemas.py
 │   │   │   └── task_schemas.py
-│   │   └── ai/
-│   │       └── workflow_generator.py
-|   ├── datasets/
-|   |   ├── iris.csv
-|   |   ├── sample_data.csv
-|   |   └── housing.csv
-|   ├── models/
-|   ├── scripts/
-|   |   ├── start_celery.sh
-|   |   └── start_dev.sh
+│   │   ├── ai/
+│   │   │   └── workflow_generator.py
+│   │   └── utils/
+│   │       └── error_handler.py
+│   ├── datasets/
+│   │   ├── iris.csv
+│   │   ├── sample_data.csv
+│   │   ├── housing.csv
+│   │   └── test_data.csv
+│   ├── models/
+│   ├── scripts/
+│   │   ├── start_celery.sh
+│   │   ├── start_dev.sh
+│   │   ├── cleanup.py
+│   │   ├── list_routes.py
+│   │   ├── monitor_workflows.py
+│   │   ├── test_workflows.py
+│   │   └── validate_day2.py
+│   ├── alembic/
+│   │   └── env.py
 │   ├── requirements.txt
 │   ├── init.sql
-|   └── .env
-├── frontend/  
+│   └── .env
+├── frontend/
 ├── docs/
 │   ├── Ai_Helper/
-|   ├── dev_journal/
-|   ├── guide/
+│   ├── dev_journal/
+│   └── guide/
 └── docker/
     └── ml-base.dockerfile
-```
 
 ## Flowza Development Log
 ### Day 1: Project Setup & Infrastructure
@@ -214,4 +254,4 @@ Create `backend/app/services/task_executor.py`:
 ## 🔜 Next Steps (Week 2)
 Tomorrow you'll implement:
 
- you dont have to follow exact same structure as this but almost like this and also map which files each step will touch/change.
+ you dont have to follow exact same structure as this but almost like this and also map which files each step will touch/change.if you understood everything then create plan for next week 2 which will be day 2. 
