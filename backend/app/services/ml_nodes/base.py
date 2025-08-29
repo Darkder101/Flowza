@@ -1,20 +1,31 @@
+# services/ml_nodes/base.py
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
 import pandas as pd  # noqa : 
 import logging
+from pydantic import BaseModel, ValidationError
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+class NodeOutputSchema(BaseModel):
+    """Standard schema for ML node execution output"""
+    status: str
+    message: str
+    node_id: str
+    outputs: Dict[str, Any] = {}
+    metadata: Dict[str, Any] = {}
+
+
 class MLNode(ABC):
     """Base class for all ML workflow nodes"""
 
-    def __init__(self, node_id: str, parameters: Dict[str, Any] = None):
+    def __init__(self, node_id: str, parameters: Dict[str, Any] = None, inputs: Dict[str, Any] = None):
         self.node_id = node_id
         self.parameters = parameters or {}
-        self.inputs = {}
-        self.outputs = {}
+        self.inputs = inputs or {}
+        self.outputs: Dict[str, Any] = {}
 
     @abstractmethod
     def execute(self) -> Dict[str, Any]:
@@ -43,3 +54,45 @@ class MLNode(ABC):
     def log_error(self, message: str):
         """Log error about node execution"""
         logger.error(f"[{self.node_id}] {message}")
+
+    def make_response(
+        self,
+        status: str,
+        message: str,
+        outputs: Dict[str, Any] = None,
+        metadata: Dict[str, Any] = None,
+    ) -> Dict[str, Any]:
+        """Return standardized response with optional Pydantic validation"""
+        response = {
+            "status": status,
+            "message": message,
+            "node_id": self.node_id,
+            "outputs": outputs or self.outputs,
+            "metadata": metadata or {},
+        }
+
+        # Optional: Validate schema to enforce consistent structure
+        try:
+            NodeOutputSchema(**response)
+        except ValidationError as e:
+            self.log_error(f"Output schema validation failed: {str(e)}")
+            response = {
+                "status": "error",
+                "message": f"Invalid node output: {str(e)}",
+                "node_id": self.node_id,
+                "outputs": {},
+                "metadata": {},
+            }
+
+        return response
+
+    def execute_safe(self) -> Dict[str, Any]:
+        """
+        Wrapper for execute() to guarantee a standardized response even if exceptions occur.
+        This allows workflow executor to never receive None.
+        """
+        try:
+            return self.execute()
+        except Exception as e:
+            self.log_error(f"Node execution failed: {str(e)}")
+            return self.make_response(status="error", message=str(e))

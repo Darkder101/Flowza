@@ -159,7 +159,6 @@ Flowza/
 │   │   ├── sample_data.csv
 │   │   ├── housing.csv
 │   │   └── test_data.csv
-│   ├── models/
 │   ├── scripts/
 │   │   ├── start_celery.sh
 │   │   ├── start_dev.sh

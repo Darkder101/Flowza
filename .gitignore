@@ -46,6 +46,7 @@ dist/
 .idea/
 *.swp
 *.swo
+.flake8
 
 # OS
 .DS_Store

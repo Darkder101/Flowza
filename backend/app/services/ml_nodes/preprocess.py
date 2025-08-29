@@ -1,4 +1,4 @@
-import pandas as pd  # noqa :
+import pandas as pd  # noqa : 
 from typing import Dict, Any
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from .base import MLNode
@@ -11,66 +11,51 @@ class Preprocess(MLNode):
         try:
             self.log_info("Starting data preprocessing...")
 
-            # Validate inputs
             self.validate_inputs(['dataset'])
             df = self.inputs['dataset'].copy()
 
-            # Get parameters
             drop_nulls = self.parameters.get('drop_nulls', True)
             normalize = self.parameters.get('normalize', False)
-            encode_categorical = self.parameters.get('encode_categorical', True)  # noqa : E501
+            encode_categorical = self.parameters.get('encode_categorical', True)
 
             original_shape = df.shape
-            preprocessing_steps = []
+            steps = []
 
-            # Drop null values
             if drop_nulls:
-                null_counts_before = df.isnull().sum().sum()
+                null_before = df.isnull().sum().sum()
                 df = df.dropna()
-                null_counts_after = df.isnull().sum().sum()
-                preprocessing_steps.append(f"Dropped nulls: {null_counts_before} -> {null_counts_after}")  # noqa : E501
+                null_after = df.isnull().sum().sum()
+                steps.append(f"Dropped nulls: {null_before} -> {null_after}")
 
-            # Encode categorical variables
+            encoders = {}
             if encode_categorical:
-                categorical_columns = df.select_dtypes(include=['object']).columns  # noqa : E501
-                encoders = {}
-
-                for col in categorical_columns:
+                cat_cols = df.select_dtypes(include=['object']).columns
+                for col in cat_cols:
                     le = LabelEncoder()
                     df[col] = le.fit_transform(df[col])
                     encoders[col] = le
-                    preprocessing_steps.append(f"Encoded categorical column: {col}")  # noqa : E501
-
-                # Store encoders for later use
+                    steps.append(f"Encoded categorical column: {col}")
                 self.outputs['encoders'] = encoders
 
-            # Normalize numerical features
             if normalize:
-                numerical_columns = df.select_dtypes(include=['int64', 'float64']).columns  # noqa : E501
+                num_cols = df.select_dtypes(include=['int64', 'float64']).columns
                 scaler = StandardScaler()
-                df[numerical_columns] = scaler.fit_transform(df[numerical_columns])  # noqa : E501
-                preprocessing_steps.append(f"Normalized {len(numerical_columns)} numerical columns")  # noqa : E501
-
-                # Store scaler for later use
+                df[num_cols] = scaler.fit_transform(df[num_cols])
+                steps.append(f"Normalized {len(num_cols)} numerical columns")
                 self.outputs['scaler'] = scaler
 
-            # Store output dataset
             self.outputs['dataset'] = df
 
-            self.log_info(f"Preprocessing completed: {original_shape} -> {df.shape}")  # noqa : E501
-
-            return {
-                "status": "success",
-                "message": f"Preprocessing completed: {original_shape} -> {df.shape}",  # noqa : E501
-                "preprocessing_steps": preprocessing_steps,
+            metadata = {
                 "original_shape": original_shape,
                 "final_shape": df.shape,
-                "columns": list(df.columns)
+                "columns": list(df.columns),
+                "preprocessing_steps": steps
             }
+
+            self.log_info(f"Preprocessing completed: {original_shape} -> {df.shape}")
+            return self.make_response("success", f"Preprocessing completed: {original_shape} -> {df.shape}", metadata=metadata)
 
         except Exception as e:
             self.log_error(f"Preprocessing failed: {str(e)}")
-            return {
-                "status": "error",
-                "message": str(e)
-            }
+            return self.make_response("error", str(e))

@@ -64,3 +64,11 @@ class WorkflowStatusResponse(BaseModel):
     created_at: datetime
     results: Optional[Dict[str, Any]] = None
     tasks: List[TaskStatus]
+
+
+class WorkflowProgressResponse(BaseModel):
+    workflow_id: int
+    status: str
+    progress: float
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None

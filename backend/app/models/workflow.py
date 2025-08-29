@@ -16,7 +16,7 @@ from sqlalchemy.sql import func
 class Workflow(Base):
     __tablename__ = "workflows"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(255), nullable=False)
     description = Column(Text)
 

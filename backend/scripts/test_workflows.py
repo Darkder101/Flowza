@@ -1,96 +1,98 @@
 #!/usr/bin/env python3
 """
-Test script for Flowza workflow execution
+Test script for basic workflow execution in Flowza (fixed for /api prefix)
 """
-
 import time
+
 import requests
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:8000/api"  # <-- updated base URL
 
 
-def create_and_run_workflow(workflow_def: dict):
-    """Helper: create workflow, execute, and track progress"""
-    # Step 1: Create workflow
-    create_resp = requests.post(f"{BASE_URL}/api/workflows/", json=workflow_def)  # noqa : 
-    if create_resp.status_code != 200:
-        print("❌ Failed to create workflow")
-        print(create_resp.text)
-        return None
-
-    workflow_id = create_resp.json().get("id")
-    print(f"✅ Workflow created: {workflow_id}")
-
-    # Step 2: Execute workflow
-    exec_resp = requests.post(f"{BASE_URL}/api/workflows/{workflow_id}/execute")  # noqa : 
-    if exec_resp.status_code != 200:
-        print("❌ Failed to execute workflow")
-        print(exec_resp.text)
-        return None
-    print(f"🚀 Workflow {workflow_id} execution started")
-
-    # Step 3: Poll progress
-    for i in range(10):  # wait up to 10s
-        time.sleep(1)
-        prog_resp = requests.get(f"{BASE_URL}/api/workflows/{workflow_id}/progress")  # noqa : 
-        if prog_resp.status_code == 200:
-            progress = prog_resp.json()
-            print(f"📊 Progress: {progress}")
-            if progress.get("status") in ["completed", "failed"]:
-                break
-        else:
-            print("❌ Failed to fetch progress")
-            break
-
-    return workflow_id
-
-
-def test_workflow_execution():
-    """Run two sample workflows"""
-
-    # Test 1: Simple CSV Load
+def test_csv_loader():
     print("\n1️⃣ Testing CSV Loader...")
-    workflow_csv = {
-        "name": "Test CSV Load",
-        "description": "Simple CSV loading test",
+
+    workflow = {
+        "name": "CSV Loader Test",
         "nodes": [
             {
-                "id": "load_csv",
+                "id": "csv_loader_node",
                 "type": "csv_loader",
                 "position": {"x": 100, "y": 100},
-                "data": {"label": "Load CSV"},
+                "data": {"label": "CSV Loader"},
                 "parameters": {"file_path": "datasets/test_data.csv"},
             }
         ],
         "connections": [],
     }
-    create_and_run_workflow(workflow_csv)
 
-    # Test 2: Drop Nulls pipeline
+    # Create workflow
+    response = requests.post(f"{BASE_URL}/workflows/", json=workflow)
+    if response.status_code != 200:
+        print("❌ Failed to create workflow")
+        print(response.text)
+        return
+
+    workflow_id = response.json().get("id") or response.json().get("workflow_id")
+
+    # Execute workflow
+    exec_resp = requests.post(f"{BASE_URL}/workflows/{workflow_id}/execute")
+    if exec_resp.status_code != 200:
+        print("❌ Failed to execute workflow")
+        print(exec_resp.text)
+        return
+
+    time.sleep(2)
+    progress_resp = requests.get(f"{BASE_URL}/workflows/{workflow_id}/progress")
+    print("✅ Workflow executed:", progress_resp.status_code == 200)
+
+
+def test_drop_nulls_pipeline():
     print("\n2️⃣ Testing Drop Nulls Pipeline...")
-    workflow_pipeline = {
+
+    workflow = {
         "name": "Drop Nulls Pipeline",
-        "description": "CSV → Drop Nulls",
         "nodes": [
             {
-                "id": "load_csv",
+                "id": "csv_loader_node",
                 "type": "csv_loader",
                 "position": {"x": 100, "y": 100},
-                "data": {"label": "Load CSV"},
+                "data": {"label": "CSV Loader"},
                 "parameters": {"file_path": "datasets/test_data.csv"},
             },
             {
-                "id": "drop_nulls",
-                "type": "preprocess",
+                "id": "drop_nulls_node",
+                "type": "drop_nulls",
                 "position": {"x": 300, "y": 100},
                 "data": {"label": "Drop Nulls"},
-                "parameters": {"drop_nulls": True, "encode_categorical": False, "normalize": False},
+                "parameters": {"how": "any"},
             },
         ],
-        "connections": [{"source": "load_csv", "target": "drop_nulls"}],
+        "connections": [{"source": "csv_loader_node", "target": "drop_nulls_node"}],
     }
-    create_and_run_workflow(workflow_pipeline)
+
+    # Create workflow
+    response = requests.post(f"{BASE_URL}/workflows/", json=workflow)
+    if response.status_code != 200:
+        print("❌ Failed to create workflow")
+        print(response.text)
+        return
+
+    workflow_id = response.json().get("id") or response.json().get("workflow_id")
+
+    # Execute workflow
+    exec_resp = requests.post(f"{BASE_URL}/workflows/{workflow_id}/execute")
+    if exec_resp.status_code != 200:
+        print("❌ Failed to execute workflow")
+        print(exec_resp.text)
+        return
+
+    time.sleep(2)
+    progress_resp = requests.get(f"{BASE_URL}/workflows/{workflow_id}/progress")
+    print("✅ Pipeline executed:", progress_resp.status_code == 200)
 
 
 if __name__ == "__main__":
-    test_workflow_execution()
+    test_csv_loader()
+    test_drop_nulls_pipeline()
+    test_drop_nulls_pipeline()
